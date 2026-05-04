@@ -25,11 +25,17 @@ TODO
 ### source config
 
 Use a "media source" for each camera.
+
 Uncheck "local file".
+
 Uncheck "start from the beginning".
+
 Input: srt://<server>:<source port as defined in the script>
+
 Input format: mpegts
+
 Lower the delay if your network allows it.
+
 Use hardware acceleration if possible.
 
 ## sources synchronization

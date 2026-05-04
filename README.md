@@ -47,8 +47,8 @@ In case the audio and video are streamed simultaneously (mixed with ffmpeg), adj
 ## synchronization between cameras
 
 - Use a "mosaic" scene showing all your sources,
-- Add a filter "render delay" to all your sources,
-- Enable the websocket server in OBS (tools / websocket server parameters),
+- Add an Effect Filter "Render Delay" to every source,
+- Enable the websocket server in OBS (Tools / Websocket Server Settings),
 - Use a blinking LED or any other clear visual signal and adjust the delay between your sources thanks to the [render delay controler](OBS/control/obs-render-delay.html).
 
 The logic is to delay the camera that displays the signal the first, and align it with the one the displays the signal the last. Repeat for the other cameras.
@@ -58,4 +58,4 @@ Remember that if you restart one or all the services, you will probably have to 
 In my experience, there is always some small delay between the various sources, that it is quite similar between launches, and that if your scenes do not show the same subjects under various angles, it would not really be necessary to fix it.
 
 
-If the delay between cameras is more than half a second, I don't know what can be done. Maybe in that case try removing the "use_wallclock_as_timestamps" in the ffmpeg script for the video source, and use an "itsoffset".
+If the delay between cameras is more than half a second, I don't know what can be done. Maybe it is possible to stack several render delays (I haven't tried), but the [render delay controler](OBS/control/obs-render-delay.html) does only manages the first one. Or maybe try removing the "use_wallclock_as_timestamps" in the ffmpeg script for the video source, and use an "itsoffset".

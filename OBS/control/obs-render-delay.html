@@ -1,0 +1,723 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>OBS Render Delay</title>
+  <script src="https://cdn.jsdelivr.net/npm/obs-websocket-js@5.0.8/dist/obs-ws.global.js"></script>
+  <style>
+    :root {
+      --bg:       #1a1a2e;
+      --surface:  #16213e;
+      --surface2: #0f3460;
+      --accent:   #e94560;
+      --text:     #eaeaea;
+      --muted:    #8a8aaa;
+      --border:   #2a2a4a;
+      --warn:     #f0a500;
+      --ok:       #4caf50;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    /* ── Connection panel ─────────────────────────────────── */
+
+    #connect-panel {
+      max-width: 380px;
+      margin: 60px auto;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 32px;
+    }
+
+    #connect-panel h1 {
+      font-size: 1.3rem;
+      margin-bottom: 24px;
+    }
+
+    .form-group { margin-bottom: 14px; }
+
+    .form-group label {
+      display: block;
+      font-size: 0.8rem;
+      color: var(--muted);
+      margin-bottom: 5px;
+    }
+
+    .form-row { display: flex; gap: 12px; }
+    .form-row .grow { flex: 1; }
+    .form-row .fixed { width: 90px; }
+
+    input[type="text"],
+    input[type="password"],
+    input[type="number"] {
+      width: 100%;
+      padding: 8px 10px;
+      background: var(--bg);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      color: var(--text);
+      font-size: 0.9rem;
+    }
+
+    input:focus { outline: none; border-color: var(--accent); }
+
+    button {
+      cursor: pointer;
+      border: none;
+      border-radius: 6px;
+      font-size: 0.85rem;
+      padding: 7px 14px;
+      transition: opacity .15s;
+    }
+    button:hover  { opacity: .82; }
+    button:active { opacity: .65; }
+
+    #btn-connect {
+      width: 100%;
+      padding: 10px;
+      background: var(--accent);
+      color: #fff;
+      font-size: 0.95rem;
+      margin-top: 4px;
+    }
+
+    #connect-error {
+      display: none;
+      margin-top: 12px;
+      padding: 8px 12px;
+      background: rgba(233,69,96,.12);
+      border: 1px solid rgba(233,69,96,.4);
+      border-radius: 6px;
+      color: var(--accent);
+      font-size: 0.82rem;
+    }
+
+    /* ── Main panel ───────────────────────────────────────── */
+
+    #main-panel { display: none; max-width: 820px; margin: 0 auto; }
+
+    .top-bar {
+      display: flex;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 10px;
+      margin-bottom: 20px;
+    }
+
+    .top-bar h1 {
+      font-size: 1.1rem;
+      color: var(--muted);
+      margin-right: 4px;
+    }
+
+    .btn-secondary {
+      background: var(--surface2);
+      color: var(--text);
+    }
+
+    .btn-danger {
+      background: rgba(233,69,96,.18);
+      color: var(--accent);
+      border: 1px solid rgba(233,69,96,.3);
+    }
+
+    .btn-ghost {
+      background: none;
+      border: 1px solid var(--border);
+      color: var(--muted);
+      font-size: 0.78rem;
+      padding: 5px 10px;
+    }
+
+    .ctrl-group {
+      display: flex;
+      align-items: center;
+      gap: 7px;
+      font-size: 0.82rem;
+      color: var(--muted);
+    }
+
+    .combo-wrap { position: relative; display: flex; }
+    #inp-increment {
+      width: 52px;
+      border-radius: 6px 0 0 6px;
+      border-right: none;
+    }
+    .combo-arrow {
+      padding: 0 7px;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 0 6px 6px 0;
+      color: var(--muted);
+      font-size: 0.7rem;
+    }
+    .combo-dropdown {
+      display: none;
+      position: absolute;
+      top: calc(100% + 3px);
+      left: 0;
+      min-width: 100%;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 6px;
+      list-style: none;
+      z-index: 100;
+      overflow: hidden;
+      box-shadow: 0 4px 12px rgba(0,0,0,.4);
+    }
+    .combo-dropdown.open { display: block; }
+    .combo-dropdown li {
+      padding: 7px 12px;
+      font-size: 0.82rem;
+      cursor: pointer;
+      white-space: nowrap;
+      color: var(--text);
+    }
+    .combo-dropdown li:hover { background: var(--surface2); }
+
+    .ctrl-group input[type="checkbox"] { accent-color: var(--accent); cursor: pointer; }
+    .ctrl-group label { cursor: pointer; }
+
+    #status {
+      margin-left: auto;
+      font-size: 0.78rem;
+      color: var(--muted);
+      display: flex;
+      align-items: center;
+      gap: 6px;
+    }
+
+    .dot {
+      display: inline-block;
+      width: 8px; height: 8px;
+      border-radius: 50%;
+      background: var(--ok);
+      flex-shrink: 0;
+    }
+    .dot.off { background: var(--accent); }
+
+    /* ── Source list ──────────────────────────────────────── */
+
+    #source-list {
+      display: flex;
+      flex-direction: column;
+      gap: 5px;
+    }
+
+    .section-label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: .08em;
+      color: var(--muted);
+      padding: 10px 4px 3px;
+    }
+
+    .source-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 9px 14px;
+    }
+
+    .source-row.no-filter {
+      opacity: .4;
+      padding: 7px 14px;
+    }
+
+    .source-name {
+      flex: 1;
+      font-size: 0.9rem;
+      white-space: nowrap;
+      overflow: hidden;
+      text-overflow: ellipsis;
+      min-width: 0;
+    }
+
+    .warn-icon {
+      color: var(--warn);
+      font-size: .95rem;
+      cursor: help;
+      flex-shrink: 0;
+    }
+
+    .delay-input {
+      width: 76px !important;
+      text-align: right;
+      padding: 5px 8px !important;
+      flex-shrink: 0;
+    }
+
+    .delay-unit {
+      font-size: 0.82rem;
+      color: var(--muted);
+      flex-shrink: 0;
+    }
+
+    .prev-val {
+      font-size: 0.78rem;
+      color: var(--muted);
+      width: 86px;
+      text-align: right;
+      font-variant-numeric: tabular-nums;
+      flex-shrink: 0;
+    }
+
+    .no-filter-badge {
+      font-size: 0.78rem;
+      color: var(--muted);
+      font-style: italic;
+    }
+
+    .info-msg {
+      text-align: center;
+      color: var(--muted);
+      padding: 48px 0;
+      font-size: 0.88rem;
+    }
+  </style>
+</head>
+<body>
+
+<!-- ── Connection panel ──────────────────────────────────────────────── -->
+<div id="connect-panel">
+  <h1>OBS Render Delay</h1>
+
+  <div class="form-row">
+    <div class="form-group grow">
+      <label>OBS host</label>
+      <input type="text" id="inp-host" placeholder="localhost" autocomplete="off" spellcheck="false">
+    </div>
+    <div class="form-group fixed">
+      <label>Port</label>
+      <input type="number" id="inp-port" placeholder="4455" min="1" max="65535">
+    </div>
+  </div>
+
+  <div class="form-group">
+    <label>Password (optional)</label>
+    <input type="password" id="inp-password" placeholder="••••••••" autocomplete="current-password">
+  </div>
+
+  <button id="btn-connect">Connect</button>
+  <div id="connect-error"></div>
+</div>
+
+<!-- ── Main panel ────────────────────────────────────────────────────── -->
+<div id="main-panel">
+
+  <div class="top-bar">
+    <h1>OBS Render Delay</h1>
+
+    <button class="btn-secondary" id="btn-refresh">↻ Refresh</button>
+    <button class="btn-danger"    id="btn-zero">Reset all to zero</button>
+
+    <div class="ctrl-group">
+      <label for="inp-increment">Step</label>
+      <div class="combo-wrap">
+        <input type="text" id="inp-increment" autocomplete="off">
+        <button type="button" id="combo-arrow" class="combo-arrow" tabindex="-1">▾</button>
+        <ul class="combo-dropdown" id="combo-dropdown">
+          <li data-value="67">67 ms — 15 fps</li>
+          <li data-value="42">42 ms — 24 fps</li>
+          <li data-value="40">40 ms — 25 fps</li>
+          <li data-value="33">33 ms — 30 fps</li>
+          <li data-value="20">20 ms — 50 fps</li>
+          <li data-value="17">17 ms — 60 fps</li>
+        </ul>
+      </div>
+      <span>ms</span>
+    </div>
+
+    <div class="ctrl-group">
+      <input type="checkbox" id="chk-show-all" id="chk-show-all">
+      <label for="chk-show-all">Show all sources</label>
+    </div>
+
+    <button class="btn-ghost" id="btn-disconnect">Disconnect</button>
+
+    <div id="status"><span class="dot" id="status-dot"></span><span id="status-text">Connected</span></div>
+  </div>
+
+  <div id="source-list">
+    <div class="info-msg">Scanning…</div>
+  </div>
+</div>
+
+<script>
+'use strict';
+
+// ── Constants ────────────────────────────────────────────────────────────────
+const FILTER_KIND = 'gpu_delay';
+
+// obs-websocket v5 EventSubscription bitmask — General=1, Filters=32, SceneItems=128
+const EVENT_SUBS = (1 << 0) | (1 << 5) | (1 << 7);
+
+// ── State ────────────────────────────────────────────────────────────────────
+// sources: Map<string, { filters: Array<{filterName,delayMs}>, prevDelay: number|null }>
+
+let obs            = null;
+let sources        = new Map();
+let allSourceNames = new Set();
+let increment      = 1;
+let showAll        = false;
+
+// ── Persistence ──────────────────────────────────────────────────────────────
+function loadSettings() {
+  document.getElementById('inp-host').value      = localStorage.getItem('obs_host')      ?? 'localhost';
+  document.getElementById('inp-port').value      = localStorage.getItem('obs_port')      ?? '4455';
+  document.getElementById('inp-password').value  = localStorage.getItem('obs_password')  ?? '';
+
+  increment = parseInt(localStorage.getItem('obs_increment') ?? '40', 10) || 40;
+  showAll   = localStorage.getItem('obs_show_all') === 'true';
+
+  document.getElementById('inp-increment').value = increment;
+  document.getElementById('chk-show-all').checked = showAll;
+}
+
+function saveConnSettings() {
+  localStorage.setItem('obs_host',     document.getElementById('inp-host').value.trim()     || 'localhost');
+  localStorage.setItem('obs_port',     document.getElementById('inp-port').value.trim()     || '4455');
+  localStorage.setItem('obs_password', document.getElementById('inp-password').value);
+}
+
+// ── Connection ────────────────────────────────────────────────────────────────
+async function connect() {
+  const host     = document.getElementById('inp-host').value.trim()     || 'localhost';
+  const port     = document.getElementById('inp-port').value.trim()     || '4455';
+  const password = document.getElementById('inp-password').value        || undefined;
+
+  const btnConn  = document.getElementById('btn-connect');
+  const errDiv   = document.getElementById('connect-error');
+
+  btnConn.disabled    = true;
+  btnConn.textContent = 'Connecting…';
+  errDiv.style.display = 'none';
+
+  // obs-websocket-js global build may expose default as .default or directly
+  const OBSClass = window.OBSWebSocket?.default ?? window.OBSWebSocket;
+  obs = new OBSClass();
+
+  try {
+    await obs.connect(`ws://${host}:${port}`, password, { eventSubscriptions: EVENT_SUBS });
+  } catch (e) {
+    errDiv.textContent   = `Error: ${e.message ?? e}`;
+    errDiv.style.display = 'block';
+    btnConn.disabled     = false;
+    btnConn.textContent  = 'Connect';
+    obs = null;
+    return;
+  }
+
+  saveConnSettings();
+  attachEvents();
+
+  document.getElementById('connect-panel').style.display = 'none';
+  document.getElementById('main-panel').style.display    = 'block';
+
+  await scanAll();
+}
+
+function disconnect() {
+  obs?.disconnect();
+  obs            = null;
+  sources        = new Map();
+  allSourceNames = new Set();
+
+  document.getElementById('main-panel').style.display    = 'none';
+  document.getElementById('connect-panel').style.display = 'block';
+
+  const btn = document.getElementById('btn-connect');
+  btn.disabled    = false;
+  btn.textContent = 'Connect';
+}
+
+// ── OBS event subscriptions ───────────────────────────────────────────────────
+function attachEvents() {
+  obs.on('SourceFilterCreated', ({ sourceName, filterKind }) => {
+    if (filterKind === FILTER_KIND) scanSource(sourceName);
+  });
+  obs.on('SourceFilterRemoved', ({ sourceName, filterKind }) => {
+    if (filterKind === FILTER_KIND) scanSource(sourceName);
+  });
+  obs.on('SceneItemCreated', ({ sourceName }) => scanSource(sourceName));
+  obs.on('SceneItemRemoved', () => scanAll());
+  obs.on('ConnectionClosed', () => setStatus(false));
+}
+
+// ── Scan ──────────────────────────────────────────────────────────────────────
+async function scanAll() {
+  if (!obs) return;
+
+  setSourceList('<div class="info-msg">Scanning…</div>');
+
+  try {
+    const { scenes } = await obs.call('GetSceneList');
+
+    const nameSet = new Set();
+    for (const scene of scenes) {
+      const { sceneItems } = await obs.call('GetSceneItemList', { sceneName: scene.sceneName });
+      for (const item of sceneItems) nameSet.add(item.sourceName);
+    }
+    allSourceNames = nameSet;
+
+    const newMap = new Map();
+    for (const sourceName of nameSet) {
+      let filters = [];
+      try {
+        const { filters: raw } = await obs.call('GetSourceFilterList', { sourceName });
+        filters = raw
+          .filter(f => f.filterKind === FILTER_KIND)
+          .map(f => ({ filterName: f.filterName, delayMs: f.filterSettings?.delay_ms ?? 0 }));
+      } catch (_) { /* source may not support filters */ }
+
+      const prev = sources.get(sourceName);
+      newMap.set(sourceName, {
+        filters,
+        prevDelay: prev?.prevDelay ?? null,
+      });
+    }
+    sources = newMap;
+
+  } catch (e) {
+    setSourceList(`<div class="info-msg">Scan error: ${e.message ?? e}</div>`);
+    return;
+  }
+
+  renderUI();
+}
+
+async function scanSource(sourceName) {
+  if (!obs) return;
+  allSourceNames.add(sourceName);
+
+  let filters = [];
+  try {
+    const { filters: raw } = await obs.call('GetSourceFilterList', { sourceName });
+    filters = raw
+      .filter(f => f.filterKind === FILTER_KIND)
+      .map(f => ({ filterName: f.filterName, delayMs: f.filterSettings?.delay_ms ?? 0 }));
+  } catch (_) { }
+
+  const prev = sources.get(sourceName);
+  sources.set(sourceName, {
+    filters,
+    prevDelay: prev?.prevDelay ?? null,
+  });
+
+  renderUI();
+}
+
+// ── OBS write ─────────────────────────────────────────────────────────────────
+async function setDelay(sourceName, newValue) {
+  const src = sources.get(sourceName);
+  if (!src || src.filters.length === 0) return;
+
+  src.prevDelay          = src.filters[0].delayMs;
+  src.filters[0].delayMs = newValue;
+
+  const inp = document.querySelector(`.delay-input[data-src="${CSS.escape(sourceName)}"]`);
+  if (inp) inp.value = newValue;
+
+  const prevEl = document.querySelector(`.prev-val[data-src="${CSS.escape(sourceName)}"]`);
+  if (prevEl) prevEl.textContent = fmtPrev(src.prevDelay);
+
+  try {
+    await obs.call('SetSourceFilterSettings', {
+      sourceName,
+      filterName:     src.filters[0].filterName,
+      filterSettings: { delay_ms: newValue },
+      overlay:        true,
+    });
+  } catch (e) {
+    console.error('SetSourceFilterSettings failed:', e);
+  }
+}
+
+async function setAllToZero() {
+  for (const [sourceName] of sources) await setDelay(sourceName, 0);
+}
+
+// ── Render ────────────────────────────────────────────────────────────────────
+function renderUI() {
+  const withFilter = [...sources.entries()]
+    .filter(([, s]) => s.filters.length > 0)
+    .sort(([a], [b]) => a.localeCompare(b));
+
+  const withoutFilter = showAll
+    ? [...sources.entries()]
+        .filter(([, s]) => s.filters.length === 0)
+        .sort(([a], [b]) => a.localeCompare(b))
+    : [];
+
+  if (withFilter.length === 0 && withoutFilter.length === 0) {
+    setSourceList('<div class="info-msg">No sources found.</div>');
+    return;
+  }
+
+  const frag = document.createDocumentFragment();
+
+  if (withFilter.length > 0) {
+    if (showAll) {
+      frag.appendChild(sectionLabel('Sources with Render Delay'));
+    }
+    for (const [name, src] of withFilter) frag.appendChild(buildRow(name, src));
+  }
+
+  if (withoutFilter.length > 0) {
+    frag.appendChild(sectionLabel('Sources without filter'));
+    for (const [name] of withoutFilter) frag.appendChild(buildNoFilterRow(name));
+  }
+
+  const container = document.getElementById('source-list');
+  container.innerHTML = '';
+  container.appendChild(frag);
+}
+
+function buildRow(sourceName, src) {
+  const row = document.createElement('div');
+  row.className = 'source-row';
+  row.dataset.source = sourceName;
+
+  // Name
+  const nameEl = el('span', 'source-name', sourceName);
+  nameEl.title = sourceName;
+  row.appendChild(nameEl);
+
+  // Multi-filter warning
+  if (src.filters.length > 1) {
+    const warn = el('span', 'warn-icon', '⚠');
+    warn.title = `${src.filters.length} Render Delay filters detected — only the first one is controlled`;
+    row.appendChild(warn);
+  }
+
+  // Delay input
+  const input = document.createElement('input');
+  input.type      = 'number';
+  input.className = 'delay-input';
+  input.min       = 0;
+  input.max       = 500;
+  input.step      = increment;
+  input.value     = src.filters[0].delayMs;
+  input.dataset.src = sourceName;
+
+  // 'change' fires on blur after typing, but immediately on spinner click —
+  // exactly the right semantics without any debounce logic.
+  input.addEventListener('change', () => {
+    const val = clampDelay(parseInt(input.value, 10));
+    input.value = val; // normalize (e.g. clamp out-of-range)
+    setDelay(sourceName, val);
+  });
+
+  row.appendChild(input);
+  row.appendChild(el('span', 'delay-unit', 'ms'));
+
+  // Previous value
+  const prevEl = el('span', 'prev-val', fmtPrev(src.prevDelay));
+  prevEl.dataset.src = sourceName;
+  row.appendChild(prevEl);
+
+  return row;
+}
+
+function buildNoFilterRow(sourceName) {
+  const row = document.createElement('div');
+  row.className  = 'source-row no-filter';
+  const nameEl = el('span', 'source-name', sourceName);
+  nameEl.title = sourceName;
+  row.appendChild(nameEl);
+  row.appendChild(el('span', 'no-filter-badge', '(no filter)'));
+  return row;
+}
+
+// ── Helpers ───────────────────────────────────────────────────────────────────
+function el(tag, cls, text) {
+  const e = document.createElement(tag);
+  if (cls)  e.className   = cls;
+  if (text) e.textContent = text;
+  return e;
+}
+
+function sectionLabel(text) { return el('div', 'section-label', text); }
+
+function setSourceList(html) {
+  document.getElementById('source-list').innerHTML = html;
+}
+
+function fmtPrev(v) { return v !== null ? `(prev: ${v})` : '(prev: —)'; }
+
+function clampDelay(v) { return Math.max(0, Math.min(500, isNaN(v) ? 0 : v)); }
+
+function setStatus(connected) {
+  document.getElementById('status-dot').classList.toggle('off', !connected);
+  document.getElementById('status-text').textContent = connected ? 'Connected' : 'Disconnected';
+}
+
+function applyIncrement(raw) {
+  increment = Math.max(1, parseInt(raw, 10) || 40);
+  localStorage.setItem('obs_increment', increment);
+  document.querySelectorAll('.delay-input').forEach(inp => { inp.step = increment; });
+}
+
+// ── Wire up controls ──────────────────────────────────────────────────────────
+document.getElementById('btn-connect')   .addEventListener('click',  () => connect());
+document.getElementById('inp-password')  .addEventListener('keydown', e => { if (e.key === 'Enter') connect(); });
+document.getElementById('btn-refresh')   .addEventListener('click',  () => scanAll());
+document.getElementById('btn-zero')      .addEventListener('click',  () => setAllToZero());
+document.getElementById('btn-disconnect').addEventListener('click',  () => disconnect());
+
+// Increment combobox
+const inpIncrement   = document.getElementById('inp-increment');
+const comboArrow     = document.getElementById('combo-arrow');
+const comboDropdown  = document.getElementById('combo-dropdown');
+
+function toggleDropdown(force) {
+  comboDropdown.classList.toggle('open', force);
+}
+
+comboArrow.addEventListener('mousedown', e => {
+  e.preventDefault(); // don't steal focus from input
+  toggleDropdown(!comboDropdown.classList.contains('open'));
+});
+
+comboDropdown.addEventListener('mousedown', e => {
+  const li = e.target.closest('li');
+  if (!li) return;
+  e.preventDefault();
+  inpIncrement.value = li.dataset.value;
+  applyIncrement(li.dataset.value);
+  toggleDropdown(false);
+});
+
+inpIncrement.addEventListener('input',   e => applyIncrement(e.target.value));
+inpIncrement.addEventListener('keydown', e => { if (e.key === 'Escape') toggleDropdown(false); });
+
+document.addEventListener('click', e => {
+  if (!e.target.closest('.combo-wrap')) toggleDropdown(false);
+});
+
+document.getElementById('chk-show-all').addEventListener('change', e => {
+  showAll = e.target.checked;
+  localStorage.setItem('obs_show_all', showAll);
+  renderUI();
+});
+
+// ── Init ──────────────────────────────────────────────────────────────────────
+loadSettings();
+// Auto-reconnect if credentials have been saved
+if (localStorage.getItem('obs_host') !== null) connect();
+</script>
+</body>
+</html>

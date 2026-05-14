@@ -6,6 +6,12 @@ TODO
 
 ## udev rules
 
+### camera with serial number
+
+TODO
+
+### per port
+
 TODO
 
 ## service

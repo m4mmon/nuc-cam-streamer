@@ -16,6 +16,10 @@ TODO
 
 TODO
 
+## OSD control
+
+TODO
+
 # OBS
 
 TODO

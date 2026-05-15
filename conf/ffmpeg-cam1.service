@@ -1,0 +1,18 @@
+# /usr/lib/systemd/system/ffmpeg-cam1.service
+[Unit]
+Description=FFmpeg SRT stream - cam1
+After=dev-cam1.device
+Requires=dev-cam1.device
+StartLimitBurst=3
+StartLimitIntervalSec=30
+
+[Service]
+Type=simple
+User=m4mmon
+SupplementaryGroups=render video
+ExecStart=/usr/local/bin/ffmpeg-cam1.sh
+Restart=on-failure
+RestartSec=5
+
+[Install]
+WantedBy=multi-user.target

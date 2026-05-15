@@ -1,0 +1,14 @@
+
+# device id 046d:0990 with serial number F4790ED4 plugged on any USB port
+SUBSYSTEM=="video4linux", \
+   ATTRS{idVendor}=="046d", ATTRS{idProduct}=="0990", \
+   ATTRS{serial}=="F4790ED4", ATTR{index}=="0", \
+   SYMLINK+="cam1", \
+   TAG+="systemd", RUN+="/bin/systemctl restart ffmpeg-cam1.service"
+
+# device id 046d:085c plugged on port "pci-0000:00:14.0-usb-0:9:1.0"
+SUBSYSTEM=="video4linux", \
+   ENV{ID_VENDOR_ID}=="046d", ENV{ID_MODEL_ID}=="085c", \
+   ENV{ID_PATH}=="pci-0000:00:14.0-usb-0:9:1.0", ATTR{index}=="0", \
+   SYMLINK+="cam2" \
+   TAG+="systemd", RUN+="/bin/systemctl restart ffmpeg-cam2.service"

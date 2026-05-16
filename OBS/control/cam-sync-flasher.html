@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Cam Sync Flasher</title>
+  <style>
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html, body {
+      width: 100%; height: 100%;
+      background: #000;
+      overflow: hidden;
+    }
+    #root {
+      width: 100%; height: 100vh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 4vh;
+      padding: 4vw;
+    }
+    #flash-circle {
+      width: min(40vw, 40vh);
+      height: min(40vw, 40vh);
+      border-radius: 50%;
+      background: #000;
+    }
+    #counter {
+      font-size: min(15vw, 15vh);
+      font-weight: 500;
+      color: #fff;
+      font-family: monospace;
+      font-variant-numeric: tabular-nums;
+      line-height: 1;
+    }
+    #controls {
+      display: flex;
+      gap: 12px;
+      align-items: center;
+      flex-wrap: wrap;
+      justify-content: center;
+    }
+    label { color: #888; font-size: clamp(11px, 2vw, 14px); font-family: sans-serif; }
+    select {
+      background: #222;
+      color: #fff;
+      border: 1px solid #444;
+      border-radius: 6px;
+      padding: 6px 10px;
+      font-size: clamp(11px, 2vw, 14px);
+    }
+    #btn-start {
+      background: #fff;
+      color: #000;
+      border: none;
+      border-radius: 6px;
+      padding: 8px 24px;
+      font-size: clamp(12px, 2vw, 15px);
+      font-weight: 500;
+      cursor: pointer;
+      font-family: sans-serif;
+    }
+    #btn-start:hover { background: #ddd; }
+    #btn-start:active { transform: scale(0.97); }
+  </style>
+</head>
+<body>
+  <div id="root">
+    <div id="flash-circle"></div>
+    <div id="counter">0</div>
+    <div id="controls">
+      <label>Intervalle</label>
+      <select id="interval-sel">
+        <option value="500">0.5s</option>
+        <option value="1000" selected>1s</option>
+        <option value="2000">2s</option>
+        <option value="3000">3s</option>
+      </select>
+      <label>Durée flash</label>
+      <select id="duration-sel">
+        <option value="50">50ms</option>
+        <option value="100" selected>100ms</option>
+        <option value="200">200ms</option>
+      </select>
+      <button id="btn-start">Démarrer</button>
+    </div>
+  </div>
+
+  <script>
+    const circle = document.getElementById('flash-circle');
+    const counter = document.getElementById('counter');
+    const btn = document.getElementById('btn-start');
+    const intervalSel = document.getElementById('interval-sel');
+    const durationSel = document.getElementById('duration-sel');
+
+    let running = false;
+    let count = 0;
+    let timer = null;
+    let audioCtx = null;
+
+    function beep(duration) {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.frequency.value = 1000;
+      gain.gain.setValueAtTime(0.5, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration / 1000);
+      osc.start();
+      osc.stop(audioCtx.currentTime + duration / 1000);
+    }
+
+    function flash() {
+      const dur = parseInt(durationSel.value);
+      count++;
+      counter.textContent = count;
+      circle.style.background = '#fff';
+      beep(dur);
+      setTimeout(() => { circle.style.background = '#000'; }, dur);
+    }
+
+    btn.addEventListener('click', () => {
+      if (!running) {
+        running = true;
+        count = 0;
+        counter.textContent = '0';
+        btn.textContent = 'Arrêter';
+        flash();
+        timer = setInterval(flash, parseInt(intervalSel.value));
+      } else {
+        running = false;
+        clearInterval(timer);
+        btn.textContent = 'Démarrer';
+        circle.style.background = '#000';
+      }
+    });
+  </script>
+</body>
+</html>

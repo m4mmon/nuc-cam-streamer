@@ -182,7 +182,7 @@ If the audio is playing too early compared to the video, then you only have to d
 ```bash
 AUDIO_DELAY=0.24
 ```
-Launch a recording of the source in OBS, and perform a few claps. I use a [small web page](OBS/cam-sync-flasher.html) that plays a beep and shows a signal on screen on a mobile phone.
+Launch a recording of the source in OBS, and perform a few claps. I use a [small web page](OBS/control/cam-sync-flasher.html) that plays a beep and shows a signal on screen on a mobile phone.
 
 Why several claps? because a frame has a given duration (40ms for 25fps for example) so you don't really know when your beep should be exactly in the video timeline. By repeating the claps and the measures, you can make an average.
 
@@ -214,7 +214,7 @@ Use hardware acceleration if possible.
 - Use a "mosaic" scene showing all your sources,
 - Add an Effect Filter "Render Delay" to every source,
 - Enable the websocket server in OBS (Tools / Websocket Server Settings),
-- Use a blinking LED or any other clear visual signal liek that [web page](OBS/cam-sync-flasher.html) on a phone/tablet and adjust the delay between your sources thanks to the [render delay controler](OBS/control/obs-render-delay.html).
+- Use a blinking LED or any other clear visual signal liek that [web page](OBS/control/cam-sync-flasher.html) on a phone/tablet and adjust the delay between your sources thanks to the [render delay controler](OBS/control/obs-render-delay.html).
 
 The logic is to delay the camera that displays the signal the first, and align it with the one the displays the signal the last. Repeat for the other cameras. At 25fps, a delta of one frame is visible. Also, because of the duration of the frames (at 25fps, 40ms) it is almost impossible to be 100% perfect. For that, the cameras would need to be synchronized (possible with some modules). But I don't have anything like that so it is not covered here.
 
